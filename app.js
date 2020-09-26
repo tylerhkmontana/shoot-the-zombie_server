@@ -14,6 +14,10 @@ io.on("connect", socket => {
   let currUser
   console.log(`User(${socket.id}) connected`)
 
+  // Sends user socket id to the client when the connection established
+  socket.emit('user connect', socket.id)
+
+  // User etners waiting room
   socket.on('user enter waiting-room', userName => {
     currUser = {
       userName,
@@ -24,12 +28,26 @@ io.on("connect", socket => {
     io.emit('refresh userlist_waiting', connectedUsers_waiting)
   })
 
-  socket.on('disconnect', () => {
-    console.log(connectedUsers_waiting)
+  // User leaves waiting room
+  socket.on('user leave waiting-room', () => {
     const indexOfUser = connectedUsers_waiting.findIndex(user => user.id === socket.id)
-    console.log(indexOfUser)
-    connectedUsers_waiting.splice(indexOfUser, 1)
     console.log(connectedUsers_waiting)
-    socket.broadcast.emit('user leave waiting-room', connectedUsers_waiting)
+    console.log(socket.id)
+    console.log(indexOfUser)
+    if (indexOfUser > -1) {
+      connectedUsers_waiting.splice(indexOfUser, 1)
+    }
+
+    socket.broadcast.emit('refresh userlist_waiting', connectedUsers_waiting)
+  })
+
+  // User disconnects
+  socket.on('disconnect', () => {
+    const indexOfUser = connectedUsers_waiting.findIndex(user => user.id === socket.id)
+    if (indexOfUser > -1) {
+      connectedUsers_waiting.splice(indexOfUser, 1)
+    }
+    socket.broadcast.emit('refresh userlist_waiting', connectedUsers_waiting)
   })
 })
+ 
