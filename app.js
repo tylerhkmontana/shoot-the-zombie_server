@@ -1,5 +1,6 @@
 const { Console } = require("console")
 const express = require("express")
+const { join } = require("path")
 const app = express()
 
 const server = require("http").createServer(app)
@@ -14,22 +15,44 @@ const gameRooms = []
 
 io.on("connect", socket => {
   let currUser
+  let joinedRoom
+
   console.log(`User(${socket.id}) connected`)
 
   // Sends user socket id to the client when the connection established
   socket.emit('user connect', socket.id)
 
+  socket.on('user enter', userName => {
+    currUser = {
+      userName,
+      id: socket.id
+    }
+    console.log(currUser)
+  })
+
   // User creates game-room
   socket.on('game created', roomInfo => {
-    roomInfo.roomcode = generatesRoomcode()
+    joinedRoom = generatesRoomcode()
+
+    roomInfo.roomcode = joinedRoom
+    roomInfo.players = [currUser]
     gameRooms.push(roomInfo)
-    socket.emit('send roomcode', roomInfo)
+    socket.join(joinedRoom)
+
+    console.log(roomInfo)
+    socket.emit('send roomInfo', roomInfo)
   })
 
   // User search game-room
-  socket.on('find room', roomCode => {
-    if(roomcodes.includes(roomCode)) {
-      socket.emit('room found', gameRooms[gameRooms.findIndex(room => room.roomcode === roomCode)])
+  socket.on('find room', targetRoomcode => {
+    if(roomcodes.includes(targetRoomcode)) {
+      const gameroomIndex = findRoomIndex(targetRoomcode)
+      gameRooms[gameroomIndex].players.push(currUser)
+      joinedRoom = gameRooms[gameroomIndex].roomcode
+
+      socket.join(joinedRoom)
+      socket.emit('room found', gameRooms[gameroomIndex])
+      socket.to(joinedRoom).emit('user join gameroom', gameRooms[gameroomIndex])
     } else {
       socket.emit('room not found')
     }
@@ -58,4 +81,10 @@ function generatesRoomcode() {
       return generatedCode
     }
   }
+}
+
+function findRoomIndex (roomcode) {
+  return roomcodes.includes(roomcode) ?
+    gameRooms.findIndex(room => room.roomcode === roomcode) :
+    -1
 }
