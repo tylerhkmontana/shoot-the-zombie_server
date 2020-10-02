@@ -1,4 +1,3 @@
-const { Console } = require("console")
 const express = require("express")
 const { join } = require("path")
 const app = express()
@@ -39,7 +38,6 @@ io.on("connect", socket => {
     gameRooms.push(roomInfo)
     socket.join(joinedRoom)
 
-    console.log(roomInfo)
     socket.emit('send roomInfo', roomInfo)
   })
 
@@ -47,12 +45,16 @@ io.on("connect", socket => {
   socket.on('find room', targetRoomcode => {
     if(roomcodes.includes(targetRoomcode)) {
       const gameroomIndex = findRoomIndex(targetRoomcode)
-      gameRooms[gameroomIndex].players.push(currUser)
-      joinedRoom = gameRooms[gameroomIndex].roomcode
-
-      socket.join(joinedRoom)
-      socket.emit('room found', gameRooms[gameroomIndex])
-      socket.to(joinedRoom).emit('user join gameroom', gameRooms[gameroomIndex])
+      if (gameRooms[gameroomIndex].players.length === gameRooms[gameroomIndex].numPlayers) {
+        socket.emit('full house')
+      } else {
+        gameRooms[gameroomIndex].players.push(currUser)
+        joinedRoom = gameRooms[gameroomIndex].roomcode
+  
+        socket.join(joinedRoom)
+        socket.emit('room found', gameRooms[gameroomIndex])
+        socket.to(joinedRoom).emit('user join gameroom', gameRooms[gameroomIndex])
+      }
     } else {
       socket.emit('room not found')
     }
@@ -60,7 +62,18 @@ io.on("connect", socket => {
 
   // User disconnects
   socket.on('disconnect', () => {
-    
+    if (joinedRoom) {
+      const gameroomIndex = findRoomIndex(joinedRoom)
+      const playerIndex = gameRooms[gameroomIndex].players.findIndex(player => player.id === socket.id)
+      gameRooms[gameroomIndex].players.splice(playerIndex, 1)
+
+      if (gameRooms[gameroomIndex].players.length === 0) {
+        gameRooms.splice(gameroomIndex, 1)
+        roomcodes.splice(roomcodes.indexOf(joinedRoom), 1)
+      } else {
+        socket.to(joinedRoom).emit('user leave gameroom', gameRooms[gameroomIndex])
+      }
+    }
   })
 })
 
