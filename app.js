@@ -71,7 +71,10 @@ io.on("connect", socket => {
         gameRooms.splice(gameroomIndex, 1)
         roomcodes.splice(roomcodes.indexOf(joinedRoom), 1)
       } else {
-        socket.to(joinedRoom).emit('user leave gameroom', gameRooms[gameroomIndex])
+        socket.to(joinedRoom).emit('user leave gameroom', {
+          roomInfo: gameRooms[gameroomIndex],
+          leavingUser: currUser
+        })
       }
     }
   })
