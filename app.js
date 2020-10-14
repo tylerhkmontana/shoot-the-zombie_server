@@ -1,5 +1,6 @@
 const express = require("express")
 const { join } = require("path")
+const { clearInterval } = require("timers")
 const app = express()
 
 const server = require("http").createServer(app)
@@ -15,6 +16,7 @@ const gameRooms = []
 io.on("connect", socket => {
   let currUser
   let joinedRoom
+  let isInGame = false
 
   console.log(`User(${socket.id}) connected`)
 
@@ -60,8 +62,25 @@ io.on("connect", socket => {
     }
   })
 
+  // Roomaster starts the game
+  socket.on('start game', gameSetting => {
+    isInGame = true
+    console.log(`Room_${joinedRoom} has started the game`)
+    console.log(gameSetting)
+    setInterval(() => {
+      if(isInGame) {
+        console.log("Zombie virus has spreaded")
+      } else {
+        clearInterval()
+      }
+    }, 3000)
+    socket.to(joinedRoom).emit('game started')
+    
+  })
+
   // User disconnects
   socket.on('disconnect', () => {
+    isInGame = false
     if (joinedRoom) {
       const gameroomIndex = findRoomIndex(joinedRoom)
       const playerIndex = gameRooms[gameroomIndex].players.findIndex(player => player.id === socket.id)
