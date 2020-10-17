@@ -12,6 +12,7 @@ server.listen(port, () => console.log(`Server running on ${port}`))
 
 const roomcodes = []
 const gameRooms = []
+const inGameRooms = []
 
 io.on("connect", socket => {
   let currUser
@@ -28,7 +29,6 @@ io.on("connect", socket => {
       userName,
       id: socket.id
     }
-    console.log(currUser)
   })
 
   // User creates game-room
@@ -63,20 +63,32 @@ io.on("connect", socket => {
   })
 
   // Roomaster starts the game
-  socket.on('start game', gameSetting => {
+  socket.on('start game', inGameRoomInfo => {
     isInGame = true
-    console.log(`Room_${joinedRoom} has started the game`)
-    console.log(gameSetting)
-    setInterval(() => {
-      if(isInGame) {
-        console.log("Zombie virus has spreaded")
-      } else {
-        clearInterval()
-      }
-    }, 3000)
-    socket.to(joinedRoom).emit('game started')
+
+    inGameRoomInfo.players = appointToRoles(inGameRoomInfo.players)
     
+    inGameRooms.push(inGameRoomInfo)
+    socket.to(joinedRoom).emit('game started')
+    console.log(inGameRoomInfo)
   })
+
+  // User enters the in-game
+  socket.on('what is my role', userId => {
+    const currGameRoomIndex = inGameRooms.findIndex(gameRoom => gameRoom.roomcode === joinedRoom)
+
+    let currGamePlayers = [...inGameRooms[currGameRoomIndex].players]
+    let myRole = currGamePlayers[currGamePlayers.findIndex(player => player.id === userId)].role
+
+    if (myRole === 'zombie') {
+      socket.emit('appointed to zombie')
+    } else if (myRole === 'leader') {
+      socket.emit('appointed to leader')
+    } else {
+      socket.emit('appointed to civilian')
+    }
+  
+  }) 
 
   // User disconnects
   socket.on('disconnect', () => {
@@ -118,8 +130,28 @@ function generatesRoomcode() {
   }
 }
 
-function findRoomIndex (roomcode) {
+function findRoomIndex(roomcode) {
   return roomcodes.includes(roomcode) ?
     gameRooms.findIndex(room => room.roomcode === roomcode) :
     -1
+}
+
+function appointToRoles(players) {
+  let numPlayers = players.length
+  const zombieIndex = Math.floor(Math.random() * numPlayers)
+  const civilLeaderIndex = (zombieIndex + Math.floor(Math.random() * (numPlayers - 1) + 1)) % numPlayers
+  
+  players.forEach((player, i) => {
+    if(i === zombieIndex) {
+      player.role = "zombie"
+      console.log(`${player.userName} became the zombie!!`)
+    } else if(i === civilLeaderIndex) {
+      player.role = "leader"
+      console.log(`${player.userName} became the leader!!`)
+    } else {
+      player.role = "civilian"
+    }
+  })
+
+  return players
 }
