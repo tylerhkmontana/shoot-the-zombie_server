@@ -1,3 +1,4 @@
+const { clear } = require("console")
 const express = require("express")
 const { join } = require("path")
 const { clearInterval } = require("timers")
@@ -17,7 +18,6 @@ const inGameRooms = []
 io.on("connect", socket => {
   let currUser
   let joinedRoom
-  let isInGame = false
 
   console.log(`User(${socket.id}) connected`)
 
@@ -46,7 +46,7 @@ io.on("connect", socket => {
   // User search game-room
   socket.on('find room', targetRoomcode => {
     if(roomcodes.includes(targetRoomcode)) {
-      const gameroomIndex = findRoomIndex(targetRoomcode)
+      const gameroomIndex = findRoomIndex(targetRoomcode, gameRooms)
       if (gameRooms[gameroomIndex].players.length === gameRooms[gameroomIndex].numPlayers) {
         socket.emit('full house')
       } else {
@@ -62,20 +62,32 @@ io.on("connect", socket => {
     }
   })
 
-  // Roomaster starts the game
+  // Room Master starts the game
   socket.on('start game', inGameRoomInfo => {
-    isInGame = true
-
     inGameRoomInfo.players = appointToRoles(inGameRoomInfo.players)
     
     inGameRooms.push(inGameRoomInfo)
     socket.to(joinedRoom).emit('game started')
-    console.log(inGameRoomInfo)
+
+    const currInGameRoom = inGameRooms[findRoomIndex(joinedRoom, inGameRooms)]
+
+    var zVirus = setInterval(() => {
+      if(spreadVirus(currInGameRoom, socket)) {
+        setTimeout(() => {
+          inGameRooms.splice(findRoomIndex(joinedRoom, inGameRooms), 1)
+          console.log(inGameRooms)
+          console.log("Game Over")
+          clearInterval(zVirus)
+        }, 3000)
+      }
+    }, 5000)
+
+
   })
 
   // User enters the in-game
   socket.on('what is my role', userId => {
-    const currGameRoomIndex = inGameRooms.findIndex(gameRoom => gameRoom.roomcode === joinedRoom)
+    const currGameRoomIndex = findRoomIndex(joinedRoom, inGameRooms)
 
     let currGamePlayers = [...inGameRooms[currGameRoomIndex].players]
     let myRole = currGamePlayers[currGamePlayers.findIndex(player => player.id === userId)].role
@@ -92,9 +104,8 @@ io.on("connect", socket => {
 
   // User disconnects
   socket.on('disconnect', () => {
-    isInGame = false
     if (joinedRoom) {
-      const gameroomIndex = findRoomIndex(joinedRoom)
+      const gameroomIndex = findRoomIndex(joinedRoom, gameRooms)
       const playerIndex = gameRooms[gameroomIndex].players.findIndex(player => player.id === socket.id)
       gameRooms[gameroomIndex].players.splice(playerIndex, 1)
 
@@ -130,7 +141,7 @@ function generatesRoomcode() {
   }
 }
 
-function findRoomIndex(roomcode) {
+function findRoomIndex(roomcode, gameRooms) {
   return roomcodes.includes(roomcode) ?
     gameRooms.findIndex(room => room.roomcode === roomcode) :
     -1
@@ -154,4 +165,21 @@ function appointToRoles(players) {
   })
 
   return players
+}
+
+function spreadVirus(targetRoom, socket) {
+  const civilianIndexs = []
+  targetRoom.players.forEach((player, i) => {
+    if(player.role === 'civilian') {
+      civilianIndexs.push(i)
+    }
+  })
+  const newZombieIndex =
+  civilianIndexs[Math.floor(Math.random() * civilianIndexs.length)]
+
+  targetRoom.players[newZombieIndex].role = "zombie"
+  io.to(targetRoom.players[newZombieIndex].id).emit("appointed to zombie")
+  console.log(`${targetRoom.players[newZombieIndex].userName} became zombie!`)
+  return civilianIndexs.length > 1 ? false : true
+
 }
