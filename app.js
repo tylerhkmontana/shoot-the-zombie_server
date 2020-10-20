@@ -72,7 +72,7 @@ io.on("connect", socket => {
     const currInGameRoom = inGameRooms[findRoomIndex(joinedRoom, inGameRooms)]
 
     var zVirus = setInterval(() => {
-      if(spreadVirus(currInGameRoom, socket)) {
+      if(spreadVirus(currInGameRoom, io)) {
         setTimeout(() => {
           inGameRooms.splice(findRoomIndex(joinedRoom, inGameRooms), 1)
           console.log(inGameRooms)
@@ -101,6 +101,14 @@ io.on("connect", socket => {
     }
   
   }) 
+
+  socket.on("I am the leader", () => {
+    const currGameRoomIndex = findRoomIndex(joinedRoom, inGameRooms)
+    const numBullets = inGameRooms[currGameRoomIndex].gameSetting.numBullets
+    const targetPlayers = inGameRooms[currGameRoomIndex].players.filter(p => p.role !== 'leader')
+
+    socket.emit("receive bullets", { numBullets, targetPlayers })
+  })
 
   // User disconnects
   socket.on('disconnect', () => {
@@ -167,7 +175,7 @@ function appointToRoles(players) {
   return players
 }
 
-function spreadVirus(targetRoom, socket) {
+function spreadVirus(targetRoom, io) {
   const civilianIndexs = []
   targetRoom.players.forEach((player, i) => {
     if(player.role === 'civilian') {
