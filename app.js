@@ -3,6 +3,7 @@ const express = require("express")
 const { join } = require("path")
 const { clearInterval } = require("timers")
 const app = express()
+const axios = require("axios")
 
 const server = require("http").createServer(app)
 const io = require("socket.io")(server)
@@ -63,26 +64,28 @@ io.on("connect", socket => {
   })
 
   // Room Master starts the game
-  socket.on('start game', inGameRoomInfo => {
-    inGameRoomInfo.players = appointToRoles(inGameRoomInfo.players)
-    
-    inGameRooms.push(inGameRoomInfo)
-    socket.to(joinedRoom).emit('game started')
+  socket.on('start game', async inGameRoomInfo => {
+    try {
+      inGameRoomInfo.players = appointToRoles(inGameRoomInfo.players)
+      inGameRoomInfo.gifData = (await axios.get('http://api.giphy.com/v1/gifs/random?api_key=V4nELc7KIaOyaaXbsCZfRaAqs98hHW2j')).data.data
+      inGameRooms.push(inGameRoomInfo)
+      io.in(joinedRoom).emit('game started')
 
-    const currInGameRoom = inGameRooms[findRoomIndex(joinedRoom, inGameRooms)]
+      const currInGameRoom = inGameRooms[findRoomIndex(joinedRoom, inGameRooms)]
 
-    var zVirus = setInterval(() => {
-      if(spreadVirus(currInGameRoom, io)) {
-        setTimeout(() => {
-          inGameRooms.splice(findRoomIndex(joinedRoom, inGameRooms), 1)
-          console.log(inGameRooms)
-          console.log("Game Over")
+      var zVirus = setInterval(() => {
+        if(spreadVirus(currInGameRoom, io)) {
           clearInterval(zVirus)
-        }, 3000)
-      }
-    }, 5000)
-
-
+          setTimeout(() => {
+            inGameRooms.splice(findRoomIndex(joinedRoom, inGameRooms), 1)
+            console.log(inGameRooms)
+            console.log("Game Over")
+          }, 7000)
+        }
+      }, 5000)
+    } catch(err) {
+      console.log(err)
+    }
   })
 
   // User enters the in-game
@@ -108,6 +111,12 @@ io.on("connect", socket => {
     const targetPlayers = inGameRooms[currGameRoomIndex].players.filter(p => p.role !== 'leader')
 
     socket.emit("receive bullets", { numBullets, targetPlayers })
+  })
+
+  socket.on("request gif", () => {
+    const gameroomIndex = findRoomIndex(joinedRoom, inGameRooms)
+    const gifData = {...inGameRooms[gameroomIndex].gifData}
+    socket.emit("response gif", gifData)
   })
 
   // User disconnects
@@ -182,12 +191,13 @@ function spreadVirus(targetRoom, io) {
       civilianIndexs.push(i)
     }
   })
+  console.log(civilianIndexs)
   const newZombieIndex =
   civilianIndexs[Math.floor(Math.random() * civilianIndexs.length)]
 
   targetRoom.players[newZombieIndex].role = "zombie"
   io.to(targetRoom.players[newZombieIndex].id).emit("appointed to zombie")
   console.log(`${targetRoom.players[newZombieIndex].userName} became zombie!`)
-  return civilianIndexs.length > 1 ? false : true
+  return civilianIndexs.length === 1 
 
 }
