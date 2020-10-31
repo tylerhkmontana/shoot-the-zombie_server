@@ -81,7 +81,7 @@ io.on("connect", socket => {
           console.log(inGameRooms)
           console.log("Game Over")
           setTimeout(() => {
-            io.in(joinedRoom).emit('Gameover')
+            io.in(joinedRoom).emit('Gameover', 'zombie')
           }, 5000)
         }
       }, 15000)
@@ -123,24 +123,36 @@ io.on("connect", socket => {
   socket.on("leader shoots player", targetId => {
     const currInGameRoom = inGameRooms[findRoomIndex(joinedRoom, inGameRooms)]
     
-    if(typeof currInGameRoom !== 'undefined') {
+    if(typeof currInGameRoom !== 'undefined' && currInGameRoom.gameSetting.numBullets > 0) {
         
       const [killedPlayer] = currInGameRoom.players.filter(player => player.id === targetId)
 
-      killedPlayer.role = "dead"
+      killedPlayer.isDead = true
 
       io.to(targetId).emit("you are dead")
-      const targetPlayers = currInGameRoom.players.filter(player => player.role === 'zombie' || player.role === 'civilian')
+
+      const targetPlayers = currInGameRoom.players.filter(player => !player.isDead)
       const leftCilvilians = targetPlayers.filter(player => player.role === 'civilian')
+      const leftZombies = targetPlayers.filter(player => player.role === 'zombie')
 
       if(leftCilvilians.length === 0) {
         clearInterval(currInGameRoom.virusTimer)
         inGameRooms.splice(findRoomIndex(joinedRoom, inGameRooms), 1)
-        console.log("GAME OVER")
+
+        console.log("GAME OVER, ZOMBIES WIN!!")
         setTimeout(() => {
-          io.in(joinedRoom).emit("Gameover")
+          io.in(joinedRoom).emit("Gameover", "zombie")
+        }, 3000)
+      } else if(leftZombies.length === 0) {
+        clearInterval(currInGameRoom.virusTimer)
+        inGameRooms.splice(findRoomIndex(joinedRoom, inGameRooms), 1)
+        
+        console.log("GAME OVER, CIVILIANS WIN!!")
+        setTimeout(() => {
+          io.in(joinedRoom).emit("Gameover", "civilian")
         }, 3000)
       } else {
+        currInGameRoom.gameSetting.numBullets-- 
         socket.emit("receive bullets", {
           numBullets: currInGameRoom.gameSetting.numBullets,
           targetPlayers
@@ -206,6 +218,7 @@ function appointToRoles(players) {
   const civilLeaderIndex = (zombieIndex + Math.floor(Math.random() * (numPlayers - 1) + 1)) % numPlayers
   
   players.forEach((player, i) => {
+    player.isDead = false
     if(i === zombieIndex) {
       player.role = "zombie"
       console.log(`${player.userName} became the zombie!!`)
