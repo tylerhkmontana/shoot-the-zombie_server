@@ -1,6 +1,4 @@
-const { clear } = require("console")
 const express = require("express")
-const { join } = require("path")
 const { clearInterval } = require("timers")
 const app = express()
 const axios = require("axios")
@@ -80,9 +78,9 @@ io.on("connect", socket => {
           inGameRooms.splice(findRoomIndex(joinedRoom, inGameRooms), 1)
           console.log(inGameRooms)
           console.log("Game Over")
-          setTimeout(() => {
-            io.in(joinedRoom).emit('Gameover', 'zombie')
-          }, 5000)
+          
+          io.in(joinedRoom).emit('Gameover', 'zombie')
+        
         }
       }, 15000)
     } catch(err) {
@@ -114,7 +112,7 @@ io.on("connect", socket => {
   socket.on("I am the leader", () => {
     const currGameRoomIndex = findRoomIndex(joinedRoom, inGameRooms)
     const numBullets = inGameRooms[currGameRoomIndex].gameSetting.numBullets
-    const targetPlayers = inGameRooms[currGameRoomIndex].players.filter(player => player.role === 'zombie' || player.role === 'civilian')
+    const targetPlayers = inGameRooms[currGameRoomIndex].players.filter(player => !player.isDead && player.role !== 'leader')
 
     socket.emit("receive bullets", { numBullets, targetPlayers })
   })
@@ -131,7 +129,7 @@ io.on("connect", socket => {
 
       io.to(targetId).emit("you are dead")
 
-      const targetPlayers = currInGameRoom.players.filter(player => !player.isDead)
+      const targetPlayers = currInGameRoom.players.filter(player => !player.isDead && player.role !== 'leader')
       const leftCilvilians = targetPlayers.filter(player => player.role === 'civilian')
       const leftZombies = targetPlayers.filter(player => player.role === 'zombie')
 
@@ -140,17 +138,17 @@ io.on("connect", socket => {
         inGameRooms.splice(findRoomIndex(joinedRoom, inGameRooms), 1)
 
         console.log("GAME OVER, ZOMBIES WIN!!")
-        setTimeout(() => {
-          io.in(joinedRoom).emit("Gameover", "zombie")
-        }, 3000)
+        
+        io.in(joinedRoom).emit("Gameover", "zombie")
+        
       } else if(leftZombies.length === 0) {
         clearInterval(currInGameRoom.virusTimer)
         inGameRooms.splice(findRoomIndex(joinedRoom, inGameRooms), 1)
         
         console.log("GAME OVER, CIVILIANS WIN!!")
-        setTimeout(() => {
-          io.in(joinedRoom).emit("Gameover", "civilian")
-        }, 3000)
+        
+        io.in(joinedRoom).emit("Gameover", "civilian")
+        
       } else {
         currInGameRoom.gameSetting.numBullets-- 
         socket.emit("receive bullets", {
@@ -159,6 +157,18 @@ io.on("connect", socket => {
         })
       }
     }
+  })
+
+  socket.on("reload bullet", () => {
+    console.log("reload Bullet")
+    const currGameroom = inGameRooms[findRoomIndex(joinedRoom, inGameRooms)]
+    const targetPlayers = currGameroom.players.filter(player => !player.isDead && player.role !== 'leader')
+    currGameroom.gameSetting.numBullets++
+
+    socket.emit("receive bullets", {
+      numBullets: currGameroom.gameSetting.numBullets,
+      targetPlayers
+    })
   })
 
   socket.on("request gif", () => {
