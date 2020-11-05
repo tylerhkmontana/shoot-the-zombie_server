@@ -103,7 +103,7 @@ io.on("connect", socket => {
       socket.emit('appointed to civilian')
     }
   
-  }) 
+  })
 
 
   //////////////////////////////////// LEADER /////////////////////////////////////////////
@@ -112,7 +112,7 @@ io.on("connect", socket => {
   socket.on("I am the leader", () => {
     const currGameRoomIndex = findRoomIndex(joinedRoom, inGameRooms)
     const numBullets = inGameRooms[currGameRoomIndex].gameSetting.numBullets
-    const targetPlayers = inGameRooms[currGameRoomIndex].players.filter(player => !player.isDead && player.role !== 'leader')
+    const targetPlayers = inGameRooms[currGameRoomIndex].players.filter(player => player.role !== 'leader' && player.role !== 'dead')
 
     socket.emit("receive bullets", { numBullets, targetPlayers })
   })
@@ -125,11 +125,11 @@ io.on("connect", socket => {
         
       const [killedPlayer] = currInGameRoom.players.filter(player => player.id === targetId)
 
-      killedPlayer.isDead = true
-
+      const whoIsKilled = killedPlayer.role
+      killedPlayer.role = 'dead'
       io.to(targetId).emit("you are dead")
-
-      const targetPlayers = currInGameRoom.players.filter(player => !player.isDead && player.role !== 'leader')
+ 
+      const targetPlayers = currInGameRoom.players.filter(player => player.role !== 'leader' && player.role !== 'dead')
       const leftCilvilians = targetPlayers.filter(player => player.role === 'civilian')
       const leftZombies = targetPlayers.filter(player => player.role === 'zombie')
 
@@ -151,10 +151,20 @@ io.on("connect", socket => {
         
       } else {
         currInGameRoom.gameSetting.numBullets-- 
-        socket.emit("receive bullets", {
-          numBullets: currInGameRoom.gameSetting.numBullets,
-          targetPlayers
-        })
+        if(whoIsKilled === 'civilian') {
+          const [currLeader] = currInGameRoom.players.filter(player => player.id === currUser.id)
+          const newLeader = leftCilvilians[Math.floor(Math.random() * leftCilvilians.length)]
+          currLeader.role = 'civilian'
+          console.log(newLeader)
+          newLeader.role = 'leader'
+          io.to(newLeader.id).emit("appointed to leader")
+          socket.emit("appointed to civilian")
+        } else {
+          socket.emit("receive bullets", {
+            numBullets: currInGameRoom.gameSetting.numBullets,
+            targetPlayers
+          })
+        }
       }
     }
   })
@@ -162,7 +172,7 @@ io.on("connect", socket => {
   socket.on("reload bullet", () => {
     console.log("reload Bullet")
     const currGameroom = inGameRooms[findRoomIndex(joinedRoom, inGameRooms)]
-    const targetPlayers = currGameroom.players.filter(player => !player.isDead && player.role !== 'leader')
+    const targetPlayers = currGameroom.players.filter(player => player.role !== 'leader' && player.role !== 'dead')
     currGameroom.gameSetting.numBullets++
 
     socket.emit("receive bullets", {
