@@ -2,7 +2,6 @@ const express = require("express")
 const { clearInterval } = require("timers")
 const app = express()
 const axios = require("axios")
-
 const server = require("http").createServer(app)
 const io = require("socket.io")(server)
 
@@ -31,11 +30,17 @@ io.on("connect", socket => {
   })
 
   // User creates game-room
-  socket.on('game created', roomInfo => {
+  socket.on('room created', roomInfo => {
     joinedRoom = generatesRoomcode()
 
     roomInfo.roomcode = joinedRoom
     roomInfo.players = [currUser]
+    roomInfo = {
+      ...roomInfo,
+      gameSetting: {
+        numBullets: 1
+      }
+    }
     gameRooms.push(roomInfo)
     socket.join(joinedRoom)
 
@@ -63,29 +68,30 @@ io.on("connect", socket => {
 
   // Room Master starts the game
   socket.on('start game', async inGameRoomInfo => {
+    io.in(joinedRoom).emit('game started')
     try {
-      inGameRoomInfo.players = appointToRoles(inGameRoomInfo.players)
       inGameRoomInfo.gifData = (await axios.get('http://api.giphy.com/v1/gifs/random?api_key=V4nELc7KIaOyaaXbsCZfRaAqs98hHW2j')).data.data
-      inGameRooms.push(inGameRoomInfo)
-      io.in(joinedRoom).emit('game started')
-
-      const currInGameRoom = inGameRooms[findRoomIndex(joinedRoom, inGameRooms)]
-
-      currInGameRoom.virusTimer = setInterval(() => {
-        console.log("Spread VIRUS!!!")
-        if(spreadVirus(currInGameRoom, io)) {
-          clearInterval(currInGameRoom.virusTimer)
-          inGameRooms.splice(findRoomIndex(joinedRoom, inGameRooms), 1)
-          console.log(inGameRooms)
-          console.log("Game Over")
-          
-          io.in(joinedRoom).emit('Gameover', 'zombie')
-        
-        }
-      }, 15000)
     } catch(err) {
       console.log(err)
+      inGameRoomInfo.gifData = null
     }
+
+    inGameRooms.push(inGameRoomInfo)
+    const currInGameRoom = inGameRooms[findRoomIndex(joinedRoom, inGameRooms)]
+    appointToRoles(currInGameRoom.players)
+
+    currInGameRoom.virusTimer = setInterval(() => {
+      console.log("Spread VIRUS!!!")
+      if(spreadVirus(currInGameRoom, io)) {
+        clearInterval(currInGameRoom.virusTimer)
+        inGameRooms.splice(findRoomIndex(joinedRoom, inGameRooms), 1)
+        console.log(inGameRooms)
+        console.log("Game Over")
+        
+        io.in(joinedRoom).emit('Gameover', 'zombie')
+      
+      }
+    }, 15000)
   })
 
   // User enters the in-game
@@ -238,7 +244,6 @@ function appointToRoles(players) {
   const civilLeaderIndex = (zombieIndex + Math.floor(Math.random() * (numPlayers - 1) + 1)) % numPlayers
   
   players.forEach((player, i) => {
-    player.isDead = false
     if(i === zombieIndex) {
       player.role = "zombie"
       console.log(`${player.userName} became the zombie!!`)
@@ -248,9 +253,8 @@ function appointToRoles(players) {
     } else {
       player.role = "civilian"
     }
+    io.to(player.id).emit(`appointed to ${player.role}`)
   })
-
-  return players
 }
 
 function spreadVirus(targetRoom, io) {
