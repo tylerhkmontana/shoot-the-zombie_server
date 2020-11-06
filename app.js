@@ -51,7 +51,9 @@ io.on("connect", socket => {
   socket.on('find room', targetRoomcode => {
     if(roomcodes.includes(targetRoomcode)) {
       const gameroomIndex = findRoomIndex(targetRoomcode, gameRooms)
-      if (gameRooms[gameroomIndex].players.length === gameRooms[gameroomIndex].numPlayers) {
+      if(findRoomIndex(targetRoomcode, inGameRooms) >= 0) {
+        socket.emit('room in game')
+      } else if(gameRooms[gameroomIndex].players.length === gameRooms[gameroomIndex].numPlayers) {
         socket.emit('full house')
       } else {
         gameRooms[gameroomIndex].players.push(currUser)
@@ -80,36 +82,41 @@ io.on("connect", socket => {
     const currInGameRoom = inGameRooms[findRoomIndex(joinedRoom, inGameRooms)]
     appointToRoles(currInGameRoom.players)
 
-    currInGameRoom.virusTimer = setInterval(() => {
+    currInGameRoom.virusTimer = setInterval(async () => {
       console.log("Spread VIRUS!!!")
+      try {
+        currInGameRoom.gifData = (await axios.get('http://api.giphy.com/v1/gifs/random?api_key=V4nELc7KIaOyaaXbsCZfRaAqs98hHW2j')).data.data
+      } catch(err) {
+        console.log(err)
+        currInGameRoom.gifData = null
+      }
       if(spreadVirus(currInGameRoom, io)) {
         clearInterval(currInGameRoom.virusTimer)
         inGameRooms.splice(findRoomIndex(joinedRoom, inGameRooms), 1)
-        console.log(inGameRooms)
+      
         console.log("Game Over")
         
         io.in(joinedRoom).emit('Gameover', 'zombie')
-      
       }
     }, 15000)
   })
 
-  // User enters the in-game
-  socket.on('what is my role', userId => {
-    const currGameRoomIndex = findRoomIndex(joinedRoom, inGameRooms)
+  // // User enters the in-game
+  // socket.on('what is my role', userId => {
+  //   const currGameRoomIndex = findRoomIndex(joinedRoom, inGameRooms)
 
-    let currGamePlayers = [...inGameRooms[currGameRoomIndex].players]
-    let myRole = currGamePlayers[currGamePlayers.findIndex(player => player.id === userId)].role
+  //   let currGamePlayers = [...inGameRooms[currGameRoomIndex].players]
+  //   let myRole = currGamePlayers[currGamePlayers.findIndex(player => player.id === userId)].role
 
-    if (myRole === 'zombie') {
-      socket.emit('appointed to zombie')
-    } else if (myRole === 'leader') {
-      socket.emit('appointed to leader')
-    } else {
-      socket.emit('appointed to civilian')
-    }
+  //   if (myRole === 'zombie') {
+  //     socket.emit('appointed to zombie')
+  //   } else if (myRole === 'leader') {
+  //     socket.emit('appointed to leader')
+  //   } else {
+  //     socket.emit('appointed to civilian')
+  //   }
   
-  })
+  // })
 
 
   //////////////////////////////////// LEADER /////////////////////////////////////////////
@@ -178,13 +185,15 @@ io.on("connect", socket => {
   socket.on("reload bullet", () => {
     console.log("reload Bullet")
     const currGameroom = inGameRooms[findRoomIndex(joinedRoom, inGameRooms)]
-    const targetPlayers = currGameroom.players.filter(player => player.role !== 'leader' && player.role !== 'dead')
-    currGameroom.gameSetting.numBullets++
+    if (typeof currGameroom !== 'undefined')  {
+      const targetPlayers = currGameroom.players.filter(player => player.role !== 'leader' && player.role !== 'dead')
+      currGameroom.gameSetting.numBullets++
 
-    socket.emit("receive bullets", {
-      numBullets: currGameroom.gameSetting.numBullets,
-      targetPlayers
-    })
+      socket.emit("receive bullets", {
+        numBullets: currGameroom.gameSetting.numBullets,
+        targetPlayers
+      })
+    }
   })
 
   socket.on("request gif", () => {
@@ -269,7 +278,11 @@ function spreadVirus(targetRoom, io) {
 
   targetRoom.players[newZombieIndex].role = "zombie"
   io.to(targetRoom.players[newZombieIndex].id).emit("appointed to zombie")
-  console.log(`${targetRoom.players[newZombieIndex].userName} became zombie!`)
-  return civilianIndexs.length === 1 
+  targetRoom.players.forEach(player => {
+    if(player.role === 'civilian' || player.role === 'leader') {
+      io.to(player.id).emit('gif updated', targetRoom.gifData)
+    }
+  })
 
+  return civilianIndexs.length === 1 
 }
