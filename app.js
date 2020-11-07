@@ -2,6 +2,7 @@ const express = require("express")
 const { clearInterval } = require("timers")
 const app = express()
 const axios = require("axios")
+const { join } = require("path")
 const server = require("http").createServer(app)
 const io = require("socket.io")(server)
 
@@ -62,10 +63,31 @@ io.on("connect", socket => {
         socket.join(joinedRoom)
         socket.emit('room found', gameRooms[gameroomIndex])
         socket.to(joinedRoom).emit('user join gameroom', gameRooms[gameroomIndex])
+        socket.to(joinedRoom).emit('update message', `${currUser.userName} has joined the room`)
       }
     } else {
       socket.emit('room not found')
     }
+  })
+
+  // User exits the room
+  socket.on("user exit room", () => {
+    const gameroomIndex = findRoomIndex(joinedRoom, gameRooms)
+    const playerIndex = gameRooms[gameroomIndex].players.findIndex(player => player.id === socket.id)
+    gameRooms[gameroomIndex].players.splice(playerIndex, 1)
+
+    if (gameRooms[gameroomIndex].players.length === 0) {
+      gameRooms.splice(gameroomIndex, 1)
+      roomcodes.splice(roomcodes.indexOf(joinedRoom), 1)
+    } else {
+      socket.to(joinedRoom).emit('user leave gameroom', {
+        roomInfo: gameRooms[gameroomIndex],
+        leavingUser: currUser
+      })
+      socket.to(joinedRoom).emit('update message', `${currUser.userName} has left the room`)
+    }
+    socket.leave(joinedRoom)
+    joinedRoom = null
   })
 
   // Room Master starts the game
@@ -118,6 +140,10 @@ io.on("connect", socket => {
   
   // })
 
+  socket.on("restart", () => {
+    const currGameroom = {...gameRooms[findRoomIndex(joinedRoom, gameRooms)]}
+    io.in(joinedRoom).emit("move to room", currGameroom)
+  })
 
   //////////////////////////////////// LEADER /////////////////////////////////////////////
   
@@ -217,6 +243,7 @@ io.on("connect", socket => {
           roomInfo: gameRooms[gameroomIndex],
           leavingUser: currUser
         })
+        socket.to(joinedRoom).emit('update message', `${currUser.userName} has left the room`)
       }
     }
   })
