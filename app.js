@@ -107,7 +107,7 @@ io.on("connect", socket => {
     currInGameRoom.virusTimer = setInterval(async () => {
       console.log("Spread VIRUS!!!")
       try {
-        currInGameRoom.gifData = (await axios.get('http://api.giphy.com/v1/gifs/random?api_key=V4nELc7KIaOyaaXbsCZfRaAqs98hHW2j')).data.data
+        currInGameRoom.gifData = (await axios.get('http://api.giphy.com/v1/gifs/random?api_key=V4nELc7KIaOyaaXbsCZfRaAqs98hHW2j&tag=funny')).data.data
       } catch(err) {
         console.log(err)
         currInGameRoom.gifData = null
