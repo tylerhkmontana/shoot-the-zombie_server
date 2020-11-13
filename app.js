@@ -102,6 +102,7 @@ io.on("connect", socket => {
 
     inGameRooms.push(inGameRoomInfo)
     const currInGameRoom = inGameRooms[findRoomIndex(joinedRoom, inGameRooms)]
+    io.in(joinedRoom).emit('virus timer', currInGameRoom.gameSetting.infectionRate)
     appointToRoles(currInGameRoom.players)
 
     currInGameRoom.virusTimer = setInterval(async () => {
@@ -120,7 +121,6 @@ io.on("connect", socket => {
         
         io.in(joinedRoom).emit('Gameover', 'zombie')
         io.in(joinedRoom).emit('update message', 'GAME OVER...')
-        currInGameRoom.gameSetting.infectionRate
       }
     }, currInGameRoom.gameSetting.infectionRate)
   })
@@ -310,11 +310,17 @@ function spreadVirus(targetRoom, io) {
   targetRoom.players[newZombieIndex].role = "zombie"
   io.in(targetRoom.roomcode).emit("update message", "AAAAAAARGH!!")
   io.to(targetRoom.players[newZombieIndex].id).emit("appointed to zombie")
+  
   targetRoom.players.forEach(player => {
     if(player.role === 'civilian' || player.role === 'leader') {
       io.to(player.id).emit('gif updated', targetRoom.gifData)
     }
   })
 
-  return civilianIndexs.length === 1 
+  if (civilianIndexs.length === 1) {
+    return true
+  } else {
+    io.in(targetRoom.roomcode).emit("virus timer", targetRoom.gameSetting.infectionRate)
+    return false
+  }
 }
