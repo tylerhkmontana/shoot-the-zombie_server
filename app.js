@@ -119,8 +119,10 @@ io.on("connect", socket => {
         console.log("Game Over")
         
         io.in(joinedRoom).emit('Gameover', 'zombie')
+        io.in(joinedRoom).emit('update message', 'GAME OVER...')
+        currInGameRoom.gameSetting.infectionRate
       }
-    }, 15000)
+    }, currInGameRoom.gameSetting.infectionRate)
   })
 
   // // User enters the in-game
@@ -177,7 +179,7 @@ io.on("connect", socket => {
         inGameRooms.splice(findRoomIndex(joinedRoom, inGameRooms), 1)
 
         console.log("GAME OVER, ZOMBIES WIN!!")
-        
+        io.in(joinedRoom).emit("update message", "GAME OVER...")
         io.in(joinedRoom).emit("Gameover", "zombie")
         
       } else if(leftZombies.length === 0) {
@@ -186,6 +188,7 @@ io.on("connect", socket => {
         
         console.log("GAME OVER, CIVILIANS WIN!!")
         
+        io.in(joinedRoom).emit("update message", "GAME OVER...")
         io.in(joinedRoom).emit("Gameover", "civilian")
         
       } else {
@@ -196,6 +199,7 @@ io.on("connect", socket => {
           currLeader.role = 'civilian'
           console.log(newLeader)
           newLeader.role = 'leader'
+          io.in(joinedRoom).emit("update message", `${newLeader.userName} became the new leader!`)
           io.to(newLeader.id).emit("appointed to leader")
           socket.emit("appointed to civilian")
         } else {
@@ -304,6 +308,7 @@ function spreadVirus(targetRoom, io) {
   civilianIndexs[Math.floor(Math.random() * civilianIndexs.length)]
 
   targetRoom.players[newZombieIndex].role = "zombie"
+  io.in(targetRoom.roomcode).emit("update message", "AAAAAAARGH!!")
   io.to(targetRoom.players[newZombieIndex].id).emit("appointed to zombie")
   targetRoom.players.forEach(player => {
     if(player.role === 'civilian' || player.role === 'leader') {
