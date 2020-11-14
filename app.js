@@ -36,12 +36,7 @@ io.on("connect", socket => {
 
     roomInfo.roomcode = joinedRoom
     roomInfo.players = [currUser]
-    roomInfo = {
-      ...roomInfo,
-      gameSetting: {
-        numBullets: 1
-      }
-    }
+
     gameRooms.push(roomInfo)
     socket.join(joinedRoom)
 
@@ -103,6 +98,12 @@ io.on("connect", socket => {
     inGameRooms.push(inGameRoomInfo)
     const currInGameRoom = inGameRooms[findRoomIndex(joinedRoom, inGameRooms)]
     io.in(joinedRoom).emit('virus timer', currInGameRoom.gameSetting.infectionRate)
+    currInGameRoom.status = {
+      zombie: 1,
+      civilian: currInGameRoom.numPlayers - 1,
+      dead: 0
+    }
+    io.in(joinedRoom).emit('update status', currInGameRoom.status)
     appointToRoles(currInGameRoom.players)
 
     currInGameRoom.virusTimer = setInterval(async () => {
@@ -125,23 +126,6 @@ io.on("connect", socket => {
     }, currInGameRoom.gameSetting.infectionRate)
   })
 
-  // // User enters the in-game
-  // socket.on('what is my role', userId => {
-  //   const currGameRoomIndex = findRoomIndex(joinedRoom, inGameRooms)
-
-  //   let currGamePlayers = [...inGameRooms[currGameRoomIndex].players]
-  //   let myRole = currGamePlayers[currGamePlayers.findIndex(player => player.id === userId)].role
-
-  //   if (myRole === 'zombie') {
-  //     socket.emit('appointed to zombie')
-  //   } else if (myRole === 'leader') {
-  //     socket.emit('appointed to leader')
-  //   } else {
-  //     socket.emit('appointed to civilian')
-  //   }
-  
-  // })
-
   socket.on("restart", () => {
     const currGameroom = {...gameRooms[findRoomIndex(joinedRoom, gameRooms)]}
     io.in(joinedRoom).emit("move to room", currGameroom)
@@ -153,9 +137,10 @@ io.on("connect", socket => {
   socket.on("I am the leader", () => {
     const currGameRoomIndex = findRoomIndex(joinedRoom, inGameRooms)
     const numBullets = inGameRooms[currGameRoomIndex].gameSetting.numBullets
+    const reloadInterval = inGameRooms[currGameRoomIndex].gameSetting.reloadInterval
     const targetPlayers = inGameRooms[currGameRoomIndex].players.filter(player => player.role !== 'leader' && player.role !== 'dead')
 
-    socket.emit("receive bullets", { numBullets, targetPlayers })
+    socket.emit("receive bullets", { numBullets, targetPlayers, reloadInterval })
   })
 
   // Leader kills a player
@@ -168,12 +153,19 @@ io.on("connect", socket => {
 
       const whoIsKilled = killedPlayer.role
       killedPlayer.role = 'dead'
+
+      whoIsKilled === 'zombie' ? currInGameRoom.status.zombie-- : currInGameRoom.status.civilian--
+      currInGameRoom.status.dead++
+
       io.to(targetId).emit("you are dead")
+      io.in(joinedRoom).emit("update status", currInGameRoom.status)
+      io.in(joinedRoom).emit("update message", whoIsKilled === 'civilian' ? 
+        `The Leader killed innocent civilian ${killedPlayer.userName}` : `The Leader killed zombie ${killedPlayer.userName}`)
  
       const targetPlayers = currInGameRoom.players.filter(player => player.role !== 'leader' && player.role !== 'dead')
       const leftCilvilians = targetPlayers.filter(player => player.role === 'civilian')
       const leftZombies = targetPlayers.filter(player => player.role === 'zombie')
-
+      
       if(leftCilvilians.length === 0) {
         clearInterval(currInGameRoom.virusTimer)
         inGameRooms.splice(findRoomIndex(joinedRoom, inGameRooms), 1)
@@ -197,23 +189,18 @@ io.on("connect", socket => {
           const [currLeader] = currInGameRoom.players.filter(player => player.id === currUser.id)
           const newLeader = leftCilvilians[Math.floor(Math.random() * leftCilvilians.length)]
           currLeader.role = 'civilian'
-          console.log(newLeader)
           newLeader.role = 'leader'
           io.in(joinedRoom).emit("update message", `${newLeader.userName} became the new leader!`)
           io.to(newLeader.id).emit("appointed to leader")
           socket.emit("appointed to civilian")
         } else {
-          socket.emit("receive bullets", {
-            numBullets: currInGameRoom.gameSetting.numBullets,
-            targetPlayers
-          })
+          socket.emit("receive targetlist", targetPlayers)
         }
       }
     }
   })
 
   socket.on("reload bullet", () => {
-    console.log("reload Bullet")
     const currGameroom = inGameRooms[findRoomIndex(joinedRoom, inGameRooms)]
     if (typeof currGameroom !== 'undefined')  {
       const targetPlayers = currGameroom.players.filter(player => player.role !== 'leader' && player.role !== 'dead')
@@ -221,6 +208,7 @@ io.on("connect", socket => {
 
       socket.emit("receive bullets", {
         numBullets: currGameroom.gameSetting.numBullets,
+        reloadInterval: currGameroom.gameSetting.reloadInterval,
         targetPlayers
       })
     }
@@ -310,13 +298,17 @@ function spreadVirus(targetRoom, io) {
   targetRoom.players[newZombieIndex].role = "zombie"
   io.in(targetRoom.roomcode).emit("update message", "AAAAAAARGH!!")
   io.to(targetRoom.players[newZombieIndex].id).emit("appointed to zombie")
-  
+
   targetRoom.players.forEach(player => {
     if(player.role === 'civilian' || player.role === 'leader') {
       io.to(player.id).emit('gif updated', targetRoom.gifData)
     }
   })
 
+  targetRoom.status.zombie++
+  targetRoom.status.civilian--
+
+  io.in(targetRoom.roomcode).emit('update status', targetRoom.status)
   if (civilianIndexs.length === 1) {
     return true
   } else {
