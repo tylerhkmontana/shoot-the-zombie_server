@@ -151,6 +151,7 @@ io.on("connect", socket => {
     if(typeof currInGameRoom !== 'undefined' && currInGameRoom.gameSetting.numBullets > 0) {
         
       const [killedPlayer] = currInGameRoom.players.filter(player => player.id === targetId)
+      currInGameRoom.gameSetting.numBullets-- 
 
       const whoIsKilled = killedPlayer.role
       killedPlayer.role = 'dead'
@@ -185,7 +186,6 @@ io.on("connect", socket => {
         io.in(joinedRoom).emit("Gameover", "civilian")
         
       } else {
-        currInGameRoom.gameSetting.numBullets-- 
         if(whoIsKilled === 'civilian') {
           const [currLeader] = currInGameRoom.players.filter(player => player.id === currUser.id)
           const newLeader = leftCilvilians[Math.floor(Math.random() * leftCilvilians.length)]
@@ -202,6 +202,7 @@ io.on("connect", socket => {
   })
 
   socket.on("reload bullet", () => {
+    console.log("RELOAD!!!!!!!!!!!!!!!!!!!!!!!")
     const currGameroom = inGameRooms[findRoomIndex(joinedRoom, inGameRooms)]
     if (typeof currGameroom !== 'undefined')  {
       const targetPlayers = currGameroom.players.filter(player => player.role !== 'leader' && player.role !== 'dead')
