@@ -5,6 +5,7 @@ const axios = require("axios")
 const { join } = require("path")
 const server = require("http").createServer(app)
 const io = require("socket.io")(server)
+const giphyApiKey = 'http://api.giphy.com/v1/gifs/random?api_key=V4nELc7KIaOyaaXbsCZfRaAqs98hHW2j&tag=funny'
 
 const port = process.env.PORT || 5000
 
@@ -89,7 +90,7 @@ io.on("connect", socket => {
   socket.on('start game', async inGameRoomInfo => {
     io.in(joinedRoom).emit('game started')
     try {
-      inGameRoomInfo.gifData = (await axios.get('http://api.giphy.com/v1/gifs/random?api_key=V4nELc7KIaOyaaXbsCZfRaAqs98hHW2j')).data.data
+      inGameRoomInfo.gifData = (await axios.get(giphyApiKey)).data.data
     } catch(err) {
       console.log(err)
       inGameRoomInfo.gifData = null
@@ -100,7 +101,7 @@ io.on("connect", socket => {
     io.in(joinedRoom).emit('virus timer', currInGameRoom.gameSetting.infectionRate)
     currInGameRoom.status = {
       zombie: 1,
-      civilian: currInGameRoom.numPlayers - 1,
+      civilian: currInGameRoom.numPlayers - 2,
       dead: 0
     }
     io.in(joinedRoom).emit('update status', currInGameRoom.status)
@@ -109,7 +110,7 @@ io.on("connect", socket => {
     currInGameRoom.virusTimer = setInterval(async () => {
       console.log("Spread VIRUS!!!")
       try {
-        currInGameRoom.gifData = (await axios.get('http://api.giphy.com/v1/gifs/random?api_key=V4nELc7KIaOyaaXbsCZfRaAqs98hHW2j&tag=funny')).data.data
+        currInGameRoom.gifData = (await axios.get(giphyApiKey)).data.data
       } catch(err) {
         console.log(err)
         currInGameRoom.gifData = null
