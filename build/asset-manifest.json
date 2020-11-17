@@ -1,28 +1,32 @@
 {
   "files": {
-    "main.css": "/static/css/main.4bc239be.chunk.css",
-    "main.js": "/static/js/main.739b8b8f.chunk.js",
-    "main.js.map": "/static/js/main.739b8b8f.chunk.js.map",
+    "main.css": "/static/css/main.55c48e0e.chunk.css",
+    "main.js": "/static/js/main.e40f0c7b.chunk.js",
+    "main.js.map": "/static/js/main.e40f0c7b.chunk.js.map",
     "runtime-main.js": "/static/js/runtime-main.09b85ec0.js",
     "runtime-main.js.map": "/static/js/runtime-main.09b85ec0.js.map",
-    "static/js/2.46a14eb4.chunk.js": "/static/js/2.46a14eb4.chunk.js",
-    "static/js/2.46a14eb4.chunk.js.map": "/static/js/2.46a14eb4.chunk.js.map",
+    "static/js/2.2bb21535.chunk.js": "/static/js/2.2bb21535.chunk.js",
+    "static/js/2.2bb21535.chunk.js.map": "/static/js/2.2bb21535.chunk.js.map",
     "index.html": "/index.html",
-    "precache-manifest.35bac0a50531a4a127d0810dbe978e31.js": "/precache-manifest.35bac0a50531a4a127d0810dbe978e31.js",
+    "precache-manifest.66efc1c56a19606973ebeffab7ebf6d8.js": "/precache-manifest.66efc1c56a19606973ebeffab7ebf6d8.js",
     "service-worker.js": "/service-worker.js",
-    "static/css/main.4bc239be.chunk.css.map": "/static/css/main.4bc239be.chunk.css.map",
-    "static/js/2.46a14eb4.chunk.js.LICENSE.txt": "/static/js/2.46a14eb4.chunk.js.LICENSE.txt",
+    "static/css/main.55c48e0e.chunk.css.map": "/static/css/main.55c48e0e.chunk.css.map",
+    "static/js/2.2bb21535.chunk.js.LICENSE.txt": "/static/js/2.2bb21535.chunk.js.LICENSE.txt",
     "static/media/Menu.css": "/static/media/Wooden-Sign-Transparent.676f7d53.png",
     "static/media/civilian_lose.jpg": "/static/media/civilian_lose.a20cb5ca.jpg",
     "static/media/civilian_win.png": "/static/media/civilian_win.57062279.png",
+    "static/media/death_sound.mp3": "/static/media/death_sound.5672e48a.mp3",
+    "static/media/death_sound_zombie.wav": "/static/media/death_sound_zombie.078c607a.wav",
     "static/media/grave_stone.png": "/static/media/grave_stone.5dfb1a1d.png",
+    "static/media/gun_shot.mp3": "/static/media/gun_shot.08e73574.mp3",
     "static/media/zombie_lose.jpg": "/static/media/zombie_lose.4d3f0abf.jpg",
+    "static/media/zombie_sound.mp3": "/static/media/zombie_sound.dcbd36db.mp3",
     "static/media/zombie_win.png": "/static/media/zombie_win.0f8ee550.png"
   },
   "entrypoints": [
     "static/js/runtime-main.09b85ec0.js",
-    "static/js/2.46a14eb4.chunk.js",
-    "static/css/main.4bc239be.chunk.css",
-    "static/js/main.739b8b8f.chunk.js"
+    "static/js/2.2bb21535.chunk.js",
+    "static/css/main.55c48e0e.chunk.css",
+    "static/js/main.e40f0c7b.chunk.js"
   ]
 }

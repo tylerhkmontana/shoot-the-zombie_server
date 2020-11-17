@@ -41,7 +41,6 @@ io.on("connect", socket => {
 
   // User creates game-room
   socket.on('room created', roomInfo => {
-    console.log("Shit")
     joinedRoom = generatesRoomcode()
 
     roomInfo.roomcode = joinedRoom
@@ -310,7 +309,7 @@ function spreadVirus(targetRoom, io) {
   civilianIndexs[Math.floor(Math.random() * civilianIndexs.length)]
 
   targetRoom.players[newZombieIndex].role = "zombie"
-  io.in(targetRoom.roomcode).emit("update message", "AAAAAAARGH!!")
+  io.in(targetRoom.roomcode).emit("update message", "One of the civilians became a zombie.")
   io.to(targetRoom.players[newZombieIndex].id).emit("appointed to zombie")
 
   targetRoom.status.zombie++

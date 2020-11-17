@@ -1,23 +1,23 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "9664f99a2e167518c2da14995ac3b537",
+    "revision": "0f2d9b467e9691750506afa172b95cf9",
     "url": "/index.html"
   },
   {
-    "revision": "70ba503b0393f27304d2",
-    "url": "/static/css/main.4bc239be.chunk.css"
+    "revision": "4dd8c12228c07d772ef5",
+    "url": "/static/css/main.55c48e0e.chunk.css"
   },
   {
-    "revision": "aaa2b1c2210679de4c41",
-    "url": "/static/js/2.46a14eb4.chunk.js"
+    "revision": "3c4862d73da2acf1cb58",
+    "url": "/static/js/2.2bb21535.chunk.js"
   },
   {
     "revision": "bedd8fd8c9d19d075d1974136a50ca30",
-    "url": "/static/js/2.46a14eb4.chunk.js.LICENSE.txt"
+    "url": "/static/js/2.2bb21535.chunk.js.LICENSE.txt"
   },
   {
-    "revision": "70ba503b0393f27304d2",
-    "url": "/static/js/main.739b8b8f.chunk.js"
+    "revision": "4dd8c12228c07d772ef5",
+    "url": "/static/js/main.e40f0c7b.chunk.js"
   },
   {
     "revision": "9b4e396c183e42c1fa5c",
@@ -36,12 +36,28 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/static/media/civilian_win.57062279.png"
   },
   {
+    "revision": "5672e48a7c1e37ea4e33e49a02ab24d4",
+    "url": "/static/media/death_sound.5672e48a.mp3"
+  },
+  {
+    "revision": "078c607a8da28f3d9615bb5d705f0ffc",
+    "url": "/static/media/death_sound_zombie.078c607a.wav"
+  },
+  {
     "revision": "5dfb1a1daef21afaa24d3edadf3de58d",
     "url": "/static/media/grave_stone.5dfb1a1d.png"
   },
   {
+    "revision": "08e735747c0ff8529c17026aa9335cb7",
+    "url": "/static/media/gun_shot.08e73574.mp3"
+  },
+  {
     "revision": "4d3f0abf252bb1191b57766165764004",
     "url": "/static/media/zombie_lose.4d3f0abf.jpg"
+  },
+  {
+    "revision": "dcbd36db0d91f78251a0a6682e2188ee",
+    "url": "/static/media/zombie_sound.dcbd36db.mp3"
   },
   {
     "revision": "0f8ee550204cd719dbf789c3747dad1b",
