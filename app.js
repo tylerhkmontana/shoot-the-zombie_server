@@ -9,7 +9,6 @@ const io = require("socket.io")(server)
 if (process.env.NODE_ENV !== 'production') {
   require("dotenv").config()
 }
-
 const giphyApiKey = process.env.GIPHY_API_KEY
 const port = process.env.PORT || 5000
 
@@ -42,6 +41,7 @@ io.on("connect", socket => {
 
   // User creates game-room
   socket.on('room created', roomInfo => {
+    console.log("Shit")
     joinedRoom = generatesRoomcode()
 
     roomInfo.roomcode = joinedRoom
